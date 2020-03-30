@@ -1,27 +1,30 @@
-'''
-Run it in srt file folder.
-python 3.x
-'''
+#!/usr/bin/env python3
+# -*- coding: utf8 -*-
 import glob
 import re
-
+import sys
 
 SRT_BLOCK_REGEX = re.compile(
         r'(\d+)[^\S\r\n]*[\r\n]+'
         r'(\d{2}:\d{2}:\d{2},\d{3,4})[^\S\r\n]*-->[^\S\r\n]*(\d{2}:\d{2}:\d{2},\d{3,4})[^\S\r\n]*[\r\n]+'
         r'([\s\S]*)')
 
-
+def convert_timestamp(srt_ts):
+    l = srt_ts.split(':')
+    h = int(l[0])
+    m = h * 60 + int(l[1])
+    return ':'.join([str(m).rjust(2, '0')] + l[2:]).replace(',', '.')[:-1]
+    
 def srt_block_to_irc(block):
     match = SRT_BLOCK_REGEX.search(block)
     if not match:
         return None
     num, ts, te, content = match.groups()
-    ts = ts[3:-1].replace(',', '.')
-    te = te[3:-1].replace(',', '.')
+    ts = convert_timestamp(ts)
+    te = convert_timestamp(te)
     co = content.replace('\n', ' ')
-    return '[%s]%s\n[%s]\n' % (ts, co, te)
-
+    lrc = '[{}]{}\n[{}]\n'.format(ts, co, te)
+    return lrc
 
 def srt_file_to_irc(fname):
     with open(fname, encoding='utf8') as file_in:
