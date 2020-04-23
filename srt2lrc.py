@@ -6,8 +6,8 @@ import sys
 
 SRT_BLOCK_REGEX = re.compile(
         r'(\d+)[^\S\r\n]*[\r\n]+'
-        r'(\d{2}:\d{2}:\d{2},\d{3,4})[^\S\r\n]*-->[^\S\r\n]*(\d{2}:\d{2}:\d{2},\d{3,4})[^\S\r\n]*[\r\n]+'
-        r'([\s\S]*)')
+        r'(\d{2}:\d{2}:\d{2},\d+)[^\S\r\n]*-->[^\S\r\n]*(\d{2}:\d{2}:\d{2},\d+)'
+        r'(.*)', re.MULTILINE | re.DOTALL)
 
 def convert_timestamp(srt_ts):
     l = srt_ts.split(':')
@@ -21,15 +21,14 @@ def srt_block_to_irc(block):
         return None
     num, ts, te, content = match.groups()
     ts = convert_timestamp(ts)
-    te = convert_timestamp(te)
     co = content.replace('\n', ' ')
-    lrc = '[{}]{}\n[{}]\n'.format(ts, co, te)
+    lrc = '[{}]{}\n'.format(ts, co.replace('\n', ''))
     return lrc
 
 def srt_file_to_irc(fname):
     with open(fname, encoding='utf8') as file_in:
         str_in = file_in.read()
-        blocks_in = str_in.replace('\r\n', '\n').split('\n\n')
+        blocks_in = str_in.replace('\r\n', '\n').replace('\r', '\n').split('\n\n')
         blocks_out = [srt_block_to_irc(block) for block in blocks_in]
         if not all(blocks_out):
             err_info.append((fname, blocks_out.index(None), blocks_in[blocks_out.index(None)]))
@@ -37,7 +36,6 @@ def srt_file_to_irc(fname):
         str_out = ''.join(blocks_out)
         with open(fname.replace('srt', 'lrc'), 'w', encoding='utf8') as file_out:
             file_out.write(str_out)
-
 
 if __name__ == '__main__':
     err_info = []
